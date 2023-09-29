@@ -225,6 +225,9 @@ void ili9341_set_touch_pressed_end(ili9341_t *lcd, ili9341_touch_callback_t call
   }
 }
 
+HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size);
+HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size);
+
 ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint16_t *x_pos, uint16_t *y_pos)
 {
@@ -264,18 +267,18 @@ ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint8_t x_raw[2];
     uint8_t y_raw[2];
 
-    HAL_SPI_Transmit(lcd->spi_hal, (uint8_t*)x_cmd, sizeof(x_cmd), __SPI_MAX_DELAY__);
-    HAL_SPI_TransmitReceive(lcd->spi_hal, (uint8_t*)x_cmd, x_raw, sizeof(x_raw), __SPI_MAX_DELAY__);
+    spi1_tx_dma((uint8_t*)x_cmd, sizeof(x_cmd));
+    spi1_txrx_dma((uint8_t*)x_cmd, x_raw, sizeof(x_raw));
 
-    HAL_SPI_Transmit(lcd->spi_hal, (uint8_t*)y_cmd, sizeof(y_cmd), __SPI_MAX_DELAY__);
-    HAL_SPI_TransmitReceive(lcd->spi_hal, (uint8_t*)y_cmd, y_raw, sizeof(y_raw), __SPI_MAX_DELAY__);
+    spi1_tx_dma((uint8_t*)y_cmd, sizeof(y_cmd));
+    spi1_txrx_dma((uint8_t*)y_cmd, y_raw, sizeof(y_raw));
 
     x_avg += __LEu16(x_raw) >> 3;
     y_avg += __LEu16(y_raw) >> 3;
 
     ++num_samples;
   }
-  HAL_SPI_Transmit(lcd->spi_hal, (uint8_t*)sleep, sizeof(sleep), __SPI_MAX_DELAY__);
+  spi1_tx_dma((uint8_t*)sleep, sizeof(sleep));
 
   ili9341_spi_touch_release(lcd);
 
@@ -431,7 +434,7 @@ void ili9341_spi_write_command(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_CLR__);
-  HAL_SPI_Transmit(lcd->spi_hal, &command, sizeof(command), __SPI_MAX_DELAY__);
+  spi1_tx_dma(&command, sizeof(command));
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }
@@ -442,7 +445,7 @@ void ili9341_spi_write_data(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
-  HAL_SPI_Transmit(lcd->spi_hal, data, data_sz, __SPI_MAX_DELAY__);
+  spi1_tx_dma(data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }
@@ -454,7 +457,7 @@ void ili9341_spi_write_data_read(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
-  HAL_SPI_TransmitReceive(lcd->spi_hal, tx_data, rx_data, data_sz, __SPI_MAX_DELAY__);
+  spi1_txrx_dma(tx_data, rx_data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }

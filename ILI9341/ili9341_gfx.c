@@ -112,25 +112,58 @@ void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
   ili9341_spi_tft_release(lcd);
 }
 
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+// dma semaphore
+SemaphoreHandle_t dma_sem = NULL;
+extern SPI_HandleTypeDef hspi1;
+
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+    if (hspi->Instance == SPI1) {
+        xSemaphoreGiveFromISR(dma_sem, NULL);
+    }
+}
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {}
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+    if (hspi->Instance == SPI1) {
+        xSemaphoreGiveFromISR(dma_sem, NULL);
+    }
+}
+
+HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size) {
+    if (!dma_sem) {
+        dma_sem = xSemaphoreCreateBinary();
+    }
+    xSemaphoreGive(dma_sem);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    const auto status = HAL_SPI_Transmit_DMA(&hspi1, data, size);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    return status;
+}
+
+HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size) {
+    if (!dma_sem) {
+        dma_sem = xSemaphoreCreateBinary();
+    }
+    xSemaphoreGive(dma_sem);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    const auto status = HAL_SPI_TransmitReceive_DMA(&hspi1, dataTx, dataRx, size);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    return status;
+}
+
 void ili9341_transmit_wait(ili9341_t *lcd)
 {
-  if (NULL == lcd)
-    { return; }
-
-  while (HAL_DMA_STATE_BUSY == HAL_DMA_GetState(lcd->spi_hal->hdmatx))
-    { continue; }
 }
 
 void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
-    uint16_t color[]/* already byte-swapped (LE) */, ili9341_bool_t wait)
+    uint16_t color[]/* already byte-swapped (LE) */)
 {
   if ((NULL == lcd) || (0 == size) || (NULL == color))
     { return; }
-
-  HAL_SPI_Transmit_DMA(lcd->spi_hal, (uint8_t *)color, size);
-
-  if (ibOK(wait))
-    { ili9341_transmit_wait(lcd); }
+  spi1_tx_dma((uint8_t *)color, size);
 }
 
 void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
@@ -147,7 +180,7 @@ void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
   ili9341_spi_tft_select(lcd);
 
   HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
-  HAL_SPI_Transmit(lcd->spi_hal, (uint8_t *)&color_le, 2U, __SPI_MAX_DELAY__);
+  ili9341_transmit_color(lcd, 2/*16-bit words*/, &color_le);
 
   ili9341_spi_tft_release(lcd);
 }
@@ -263,7 +296,7 @@ void ili9341_fill_rect(ili9341_t *lcd, ili9341_color_t color,
     curr_wc = rect_wc;
     if (curr_wc > block_wc)
       { curr_wc = block_wc; }
-    ili9341_transmit_color(lcd, curr_wc * 2/*16-bit words*/, spi_tx_block, ibYes);
+    ili9341_transmit_color(lcd, curr_wc * 2/*16-bit words*/, spi_tx_block);
     rect_wc -= curr_wc;
   }
 
@@ -359,12 +392,10 @@ void ili9341_draw_bitmap_1b(ili9341_t *lcd,
         { spi_tx_block[((j&1) * w) + i] = bg_le; }
     }
 
-    ili9341_transmit_wait(lcd);
-    ili9341_transmit_color(lcd, w * 2, &(spi_tx_block[(j&1) * w]), ibNo);
+    ili9341_transmit_color(lcd, w * 2, &(spi_tx_block[(j&1) * w]));
   }
 
   ili9341_spi_tft_release(lcd);
-  ili9341_transmit_wait(lcd);
 }
 
 void ili9341_draw_char(ili9341_t *lcd, ili9341_text_attr_t attr, char ch)
@@ -415,7 +446,7 @@ void ili9341_draw_char(ili9341_t *lcd, ili9341_text_attr_t attr, char ch)
     curr_wc = rect_wc;
     if (curr_wc > block_wc)
       { curr_wc = block_wc; }
-    ili9341_transmit_color(lcd, curr_wc * 2/*16-bit words*/, spi_tx_block, ibYes);
+    ili9341_transmit_color(lcd, curr_wc * 2/*16-bit words*/, spi_tx_block);
     rect_wc -= curr_wc;
   }
 
