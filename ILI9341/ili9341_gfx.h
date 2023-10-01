@@ -123,7 +123,7 @@ void ili9341_fill_screen(ili9341_t *lcd, ili9341_color_t color);
 
 void ili9341_draw_bitmap_1b(ili9341_t *lcd,
     ili9341_color_t fg_color, ili9341_color_t bg_color,
-    int16_t x, int16_t y, uint16_t w, uint16_t h, uint8_t *bmp);
+    int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t *bmp);
 
 void ili9341_draw_char(ili9341_t *lcd, ili9341_text_attr_t attr, char ch);
 void ili9341_draw_string(ili9341_t *lcd, ili9341_text_attr_t attr, char str[]);
