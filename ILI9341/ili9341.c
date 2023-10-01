@@ -149,6 +149,16 @@ ili9341_t *ili9341_new(
   return lcd;
 }
 
+void ili9341_enter_data_mode(ili9341_t *lcd) {
+    HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin,
+                      GPIO_PIN_SET);
+}
+
+void ili9341_enter_command_mode(ili9341_t *lcd) {
+    HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin,
+                      GPIO_PIN_RESET);
+}
+
 void ili9341_touch_interrupt(ili9341_t *lcd)
 {
   uint16_t x_pos;
@@ -225,8 +235,47 @@ void ili9341_set_touch_pressed_end(ili9341_t *lcd, ili9341_touch_callback_t call
   }
 }
 
-HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size);
-HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size);
+
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+// dma semaphore
+SemaphoreHandle_t dma_sem = NULL;
+extern SPI_HandleTypeDef hspi1;
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+    if (hspi->Instance == SPI1) {
+        xSemaphoreGiveFromISR(dma_sem, NULL);
+    }
+}
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {}
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+    if (hspi->Instance == SPI1) {
+        xSemaphoreGiveFromISR(dma_sem, NULL);
+    }
+}
+
+HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size) {
+    if (!dma_sem) {
+        dma_sem = xSemaphoreCreateBinary();
+    }
+    xSemaphoreGive(dma_sem);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    const auto status = HAL_SPI_Transmit_DMA(&hspi1, data, size);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    return status;
+}
+
+HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size) {
+    if (!dma_sem) {
+        dma_sem = xSemaphoreCreateBinary();
+    }
+    xSemaphoreGive(dma_sem);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    const auto status = HAL_SPI_TransmitReceive_DMA(&hspi1, dataTx, dataRx, size);
+    xSemaphoreTake(dma_sem, portMAX_DELAY);
+    return status;
+}
 
 ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint16_t *x_pos, uint16_t *y_pos)
@@ -433,7 +482,7 @@ void ili9341_spi_write_command(ili9341_t *lcd,
 {
   __SLAVE_SELECT(lcd, spi_slave);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_CLR__);
+  ili9341_enter_command_mode(lcd);
   spi1_tx_dma(&command, sizeof(command));
 
   __SLAVE_RELEASE(lcd, spi_slave);
@@ -444,7 +493,7 @@ void ili9341_spi_write_data(ili9341_t *lcd,
 {
   __SLAVE_SELECT(lcd, spi_slave);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
   spi1_tx_dma(data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);
@@ -456,7 +505,7 @@ void ili9341_spi_write_data_read(ili9341_t *lcd,
 {
   __SLAVE_SELECT(lcd, spi_slave);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
   spi1_txrx_dma(tx_data, rx_data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);

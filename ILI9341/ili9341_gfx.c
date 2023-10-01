@@ -112,52 +112,6 @@ void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
   ili9341_spi_tft_release(lcd);
 }
 
-#include "FreeRTOS.h"
-#include "semphr.h"
-
-// dma semaphore
-SemaphoreHandle_t dma_sem = NULL;
-extern SPI_HandleTypeDef hspi1;
-
-
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi->Instance == SPI1) {
-        xSemaphoreGiveFromISR(dma_sem, NULL);
-    }
-}
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {}
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi->Instance == SPI1) {
-        xSemaphoreGiveFromISR(dma_sem, NULL);
-    }
-}
-
-HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size) {
-    if (!dma_sem) {
-        dma_sem = xSemaphoreCreateBinary();
-    }
-    xSemaphoreGive(dma_sem);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    const auto status = HAL_SPI_Transmit_DMA(&hspi1, data, size);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    return status;
-}
-
-HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size) {
-    if (!dma_sem) {
-        dma_sem = xSemaphoreCreateBinary();
-    }
-    xSemaphoreGive(dma_sem);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    const auto status = HAL_SPI_TransmitReceive_DMA(&hspi1, dataTx, dataRx, size);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    return status;
-}
-
-void ili9341_transmit_wait(ili9341_t *lcd)
-{
-}
-
 void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
     uint16_t color[]/* already byte-swapped (LE) */)
 {
@@ -179,7 +133,7 @@ void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
 
   ili9341_spi_tft_select(lcd);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
   ili9341_transmit_color(lcd, 2/*16-bit words*/, &color_le);
 
   ili9341_spi_tft_release(lcd);
@@ -287,7 +241,7 @@ void ili9341_fill_rect(ili9341_t *lcd, ili9341_color_t color,
   ili9341_spi_tft_set_address_rect(lcd, x, y, (x + w - 1), (y + h - 1));
   ili9341_spi_tft_select(lcd);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
 
   // repeatedly send MIN(remaining-words, block-words) words of color data until
   // all rect words have been sent.
@@ -376,7 +330,7 @@ void ili9341_draw_bitmap_1b(ili9341_t *lcd,
   ili9341_spi_tft_set_address_rect(lcd, x, y, w, h);
   ili9341_spi_tft_select(lcd);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
 
   for (int16_t j = 0; j < h; ++j, ++y) {
     for (int16_t i = 0; i < w; ++i) {
@@ -437,7 +391,7 @@ void ili9341_draw_char(ili9341_t *lcd, ili9341_text_attr_t attr, char ch)
       attr.origin_x + attr.font->width - 1, attr.origin_y + attr.font->height - 1);
   ili9341_spi_tft_select(lcd);
 
-  HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin, __GPIO_PIN_SET__);
+  ili9341_enter_data_mode(lcd);
 
   // repeatedly send MIN(remaining-words, block-words) words of color data until
   // all rect words have been sent.

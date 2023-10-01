@@ -99,7 +99,6 @@ ili9341_color_t ili9341_color_wheel(uint8_t *pos);
 void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
     uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 
-void ili9341_transmit_wait(ili9341_t *lcd);
 void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
     uint16_t color[]/* already byte-swapped (LE) */);
 
