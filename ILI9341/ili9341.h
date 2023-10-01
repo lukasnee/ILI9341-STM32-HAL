@@ -166,11 +166,16 @@ ili9341_spi_slave_t;
 
 typedef void (*ili9341_touch_callback_t)(ili9341_t *, uint16_t, uint16_t);
 
+typedef uint16_t (*ili9341_spi_write_fn)(uint8_t *, uint16_t);
+typedef uint16_t (*ili9341_spi_read_write_fn)(uint8_t *, const uint8_t *, uint16_t);
+
 typedef HAL_StatusTypeDef ili9341_status_t;
 
 struct ili9341
 {
   SPI_HandleTypeDef *spi_hal;
+  ili9341_spi_write_fn spi_write_fn;
+  ili9341_spi_read_write_fn spi_read_write_fn;
 
   GPIO_TypeDef *reset_port;
   uint16_t      reset_pin;
@@ -208,6 +213,8 @@ struct ili9341
 ili9341_t *ili9341_new(
 
     SPI_HandleTypeDef *spi_hal,
+    ili9341_spi_write_fn spi_write_fn,
+    ili9341_spi_read_write_fn spi_read_write_fn,
 
     GPIO_TypeDef *reset_port,        uint16_t reset_pin,
     GPIO_TypeDef *tft_select_port,   uint16_t tft_select_pin,

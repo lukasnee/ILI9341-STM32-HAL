@@ -117,7 +117,7 @@ void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
 {
   if ((NULL == lcd) || (0 == size) || (NULL == color))
     { return; }
-  spi1_tx_dma((uint8_t *)color, size);
+  lcd->spi_write_fn((uint8_t *)color, size);
 }
 
 void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,

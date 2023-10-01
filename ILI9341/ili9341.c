@@ -61,6 +61,8 @@ ili9341_two_dimension_t ili9341_project_touch_coordinate(ili9341_t *lcd,
 ili9341_t *ili9341_new(
 
     SPI_HandleTypeDef *spi_hal,
+    ili9341_spi_write_fn spi_write_fn,
+    ili9341_spi_read_write_fn spi_read_write_fn,
 
     GPIO_TypeDef *reset_port,        uint16_t reset_pin,
     GPIO_TypeDef *tft_select_port,   uint16_t tft_select_pin,
@@ -92,6 +94,9 @@ ili9341_t *ili9341_new(
         if (NULL != (lcd = malloc(sizeof(ili9341_t)))) {
 
           lcd->spi_hal              = spi_hal;
+
+          lcd->spi_write_fn         = spi_write_fn;
+          lcd->spi_read_write_fn    = spi_read_write_fn;
 
           lcd->reset_port           = reset_port;
           lcd->reset_pin            = reset_pin;
@@ -235,48 +240,6 @@ void ili9341_set_touch_pressed_end(ili9341_t *lcd, ili9341_touch_callback_t call
   }
 }
 
-
-#include "FreeRTOS.h"
-#include "semphr.h"
-
-// dma semaphore
-SemaphoreHandle_t dma_sem = NULL;
-extern SPI_HandleTypeDef hspi1;
-
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi->Instance == SPI1) {
-        xSemaphoreGiveFromISR(dma_sem, NULL);
-    }
-}
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {}
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi->Instance == SPI1) {
-        xSemaphoreGiveFromISR(dma_sem, NULL);
-    }
-}
-
-HAL_StatusTypeDef spi1_tx_dma(uint8_t *data, uint16_t size) {
-    if (!dma_sem) {
-        dma_sem = xSemaphoreCreateBinary();
-    }
-    xSemaphoreGive(dma_sem);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    const auto status = HAL_SPI_Transmit_DMA(&hspi1, data, size);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    return status;
-}
-
-HAL_StatusTypeDef spi1_txrx_dma(uint8_t *dataTx, uint8_t *dataRx, uint16_t size) {
-    if (!dma_sem) {
-        dma_sem = xSemaphoreCreateBinary();
-    }
-    xSemaphoreGive(dma_sem);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    const auto status = HAL_SPI_TransmitReceive_DMA(&hspi1, dataTx, dataRx, size);
-    xSemaphoreTake(dma_sem, portMAX_DELAY);
-    return status;
-}
-
 ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint16_t *x_pos, uint16_t *y_pos)
 {
@@ -316,18 +279,18 @@ ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint8_t x_raw[2];
     uint8_t y_raw[2];
 
-    spi1_tx_dma((uint8_t*)x_cmd, sizeof(x_cmd));
-    spi1_txrx_dma((uint8_t*)x_cmd, x_raw, sizeof(x_raw));
+    lcd->spi_write_fn((uint8_t*)x_cmd, sizeof(x_cmd));
+    lcd->spi_read_write_fn(x_raw, (uint8_t*)x_cmd, sizeof(x_raw));
 
-    spi1_tx_dma((uint8_t*)y_cmd, sizeof(y_cmd));
-    spi1_txrx_dma((uint8_t*)y_cmd, y_raw, sizeof(y_raw));
+    lcd->spi_write_fn((uint8_t*)y_cmd, sizeof(y_cmd));
+    lcd->spi_read_write_fn(y_raw, (uint8_t*)y_cmd, sizeof(y_raw));
 
     x_avg += __LEu16(x_raw) >> 3;
     y_avg += __LEu16(y_raw) >> 3;
 
     ++num_samples;
   }
-  spi1_tx_dma((uint8_t*)sleep, sizeof(sleep));
+  lcd->spi_write_fn((uint8_t*)sleep, sizeof(sleep));
 
   ili9341_spi_touch_release(lcd);
 
@@ -483,7 +446,7 @@ void ili9341_spi_write_command(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   ili9341_enter_command_mode(lcd);
-  spi1_tx_dma(&command, sizeof(command));
+  lcd->spi_write_fn(&command, sizeof(command));
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }
@@ -494,7 +457,7 @@ void ili9341_spi_write_data(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   ili9341_enter_data_mode(lcd);
-  spi1_tx_dma(data, data_sz);
+  lcd->spi_write_fn(data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }
@@ -506,7 +469,7 @@ void ili9341_spi_write_data_read(ili9341_t *lcd,
   __SLAVE_SELECT(lcd, spi_slave);
 
   ili9341_enter_data_mode(lcd);
-  spi1_txrx_dma(tx_data, rx_data, data_sz);
+  lcd->spi_read_write_fn(rx_data, tx_data, data_sz);
 
   __SLAVE_RELEASE(lcd, spi_slave);
 }
