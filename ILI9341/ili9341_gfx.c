@@ -407,11 +407,13 @@ void ili9341_draw_char(ili9341_t *lcd, ili9341_text_attr_t attr, char ch)
   ili9341_spi_tft_release(lcd);
 }
 
-void ili9341_draw_string(ili9341_t *lcd, ili9341_text_attr_t attr, char str[])
+void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  char str[])
 {
-  int16_t curr_x = attr.origin_x;
-  int16_t curr_y = attr.origin_y;
-  int16_t start_x = attr.origin_x;
+  ili9341_text_attr_t _attr = attr;
+
+  int16_t curr_x = _attr.origin_x;
+  int16_t curr_y = _attr.origin_y;
+  int16_t start_x = _attr.origin_x;
 
   while ('\0' != *str) {
     if('\r' == *str)
@@ -420,7 +422,7 @@ void ili9341_draw_string(ili9341_t *lcd, ili9341_text_attr_t attr, char str[])
     }
     else if('\n' == *str)
     {
-      curr_y += attr.font->height;
+      curr_y += _attr.font->height;
       curr_x = start_x;
     }
     else
@@ -429,12 +431,12 @@ void ili9341_draw_string(ili9341_t *lcd, ili9341_text_attr_t attr, char str[])
           (curr_y > lcd->screen_size.height) )
         { break; }
 
-      attr.origin_x = curr_x;
-      attr.origin_y = curr_y;
+      _attr.origin_x = curr_x;
+      _attr.origin_y = curr_y;
 
-      ili9341_draw_char(lcd, attr, *str);
+      ili9341_draw_char(lcd, _attr, *str);
 
-      curr_x += attr.font->width + attr.font->spacing;
+      curr_x += _attr.font->width + _attr.font->spacing;
     }
     ++str;
   }

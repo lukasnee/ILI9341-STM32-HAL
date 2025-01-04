@@ -15,6 +15,9 @@
 #include "ili9341_gfx.h"
 #include "ili9341_font.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 // ---------------------------------------------------------- private defines --
 
 #define __ILI9341_TOUCH_NORM_SAMPLES__ 8U
@@ -492,7 +495,7 @@ static void ili9341_reset(ili9341_t *lcd)
   // the reset pin on ILI9341 is active low, so driving low temporarily will
   // reset the device (also resets the touch screen peripheral)
   HAL_GPIO_WritePin(lcd->reset_port, lcd->reset_pin, __GPIO_PIN_CLR__);
-  HAL_Delay(200);
+  vTaskDelay(200);
   HAL_GPIO_WritePin(lcd->reset_port, lcd->reset_pin, __GPIO_PIN_SET__);
 
   // ensure both slave lines are open
@@ -509,7 +512,7 @@ static void ili9341_initialize(ili9341_t *lcd)
 
   // SOFTWARE RESET
   ili9341_spi_write_command(lcd, issNONE, 0x01);
-  HAL_Delay(1000);
+  vTaskDelay(1000);
 
   // POWER CONTROL A
   ili9341_spi_write_command_data(lcd, issNONE,
@@ -587,7 +590,7 @@ static void ili9341_initialize(ili9341_t *lcd)
 
   // EXIT SLEEP
   ili9341_spi_write_command(lcd, issNONE, 0x11);
-  HAL_Delay(120);
+  vTaskDelay(120);
 
   // TURN ON DISPLAY
   ili9341_spi_write_command(lcd, issNONE, 0x29);
