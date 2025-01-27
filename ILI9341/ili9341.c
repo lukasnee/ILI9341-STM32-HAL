@@ -63,6 +63,7 @@ ili9341_t *ili9341_new(
     SPI_HandleTypeDef *spi_hal,
     ili9341_spi_write_fn spi_write_fn,
     ili9341_spi_read_write_fn spi_read_write_fn,
+    ili9341_delay_ms_fn delay_ms_fn,
 
     GPIO_TypeDef *reset_port,        uint16_t reset_pin,
     GPIO_TypeDef *tft_select_port,   uint16_t tft_select_pin,
@@ -97,6 +98,7 @@ ili9341_t *ili9341_new(
 
           lcd->spi_write_fn         = spi_write_fn;
           lcd->spi_read_write_fn    = spi_read_write_fn;
+          lcd->delay_ms_fn          = delay_ms_fn;
 
           lcd->reset_port           = reset_port;
           lcd->reset_pin            = reset_pin;
@@ -492,7 +494,7 @@ static void ili9341_reset(ili9341_t *lcd)
   // the reset pin on ILI9341 is active low, so driving low temporarily will
   // reset the device (also resets the touch screen peripheral)
   HAL_GPIO_WritePin(lcd->reset_port, lcd->reset_pin, __GPIO_PIN_CLR__);
-  HAL_Delay(200);
+  lcd->delay_ms_fn(200);
   HAL_GPIO_WritePin(lcd->reset_port, lcd->reset_pin, __GPIO_PIN_SET__);
 
   // ensure both slave lines are open
@@ -509,7 +511,7 @@ static void ili9341_initialize(ili9341_t *lcd)
 
   // SOFTWARE RESET
   ili9341_spi_write_command(lcd, issNONE, 0x01);
-  HAL_Delay(1000);
+  lcd->delay_ms_fn(1000);
 
   // POWER CONTROL A
   ili9341_spi_write_command_data(lcd, issNONE,
@@ -587,7 +589,7 @@ static void ili9341_initialize(ili9341_t *lcd)
 
   // EXIT SLEEP
   ili9341_spi_write_command(lcd, issNONE, 0x11);
-  HAL_Delay(120);
+  lcd->delay_ms_fn(120);
 
   // TURN ON DISPLAY
   ili9341_spi_write_command(lcd, issNONE, 0x29);
