@@ -272,7 +272,11 @@ ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
 
   // change SPI clock to 2MHz, max rate supported by XPT2046
   // TODO: based on STM32G4, which is clocked at 170MHz. support other chips.
+#ifdef STM32H7
   LL_SPI_SetBaudRatePrescaler(lcd->spi_hal->Instance, SPI_BAUDRATEPRESCALER_128);
+#else
+  MODIFY_REG(lcd->spi_hal->Instance->CR1, SPI_CR1_BR, SPI_BAUDRATEPRESCALER_128);
+#endif
 
   ili9341_spi_touch_select(lcd);
 
@@ -298,7 +302,11 @@ ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
 
   // restore SPI clock to maximum for TFT
   // TODO: based on STM32G4, which is clocked at 170MHz. support other chips.
+#ifdef STM32H7
   LL_SPI_SetBaudRatePrescaler(lcd->spi_hal->Instance, SPI_BAUDRATEPRESCALER_8);
+#else
+    MODIFY_REG(lcd->spi_hal->Instance->CR1, SPI_CR1_BR, SPI_BAUDRATEPRESCALER_8);
+#endif
 
   if (num_samples < req_samples)
     { return itpNotPressed; }
