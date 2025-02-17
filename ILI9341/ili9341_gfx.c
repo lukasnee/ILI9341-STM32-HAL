@@ -355,8 +355,8 @@ void ili9341_draw_bitmap_1b(ili9341_t *lcd,
 void ili9341_draw_char(ili9341_t *lcd, const ili9341_text_attr_t attr, char ch)
 {
   // verify we have something within screen dimensions to be drawn
-  int16_t  _x = attr.origin_x;
-  int16_t  _y = attr.origin_y;
+  int16_t  _x = attr.origin.x;
+  int16_t  _y = attr.origin.y;
   uint16_t _w = attr.font->width;
   uint16_t _h = attr.font->height;
   if (ibNOT(ili9341_clip_rect(lcd, &_x, &_y, &_w, &_h)))
@@ -387,8 +387,8 @@ void ili9341_draw_char(ili9341_t *lcd, const ili9341_text_attr_t attr, char ch)
 
   // select target region
   ili9341_spi_tft_set_address_rect(lcd,
-      attr.origin_x, attr.origin_y,
-      attr.origin_x + attr.font->width - 1, attr.origin_y + attr.font->height - 1);
+      attr.origin.x, attr.origin.y,
+      attr.origin.x + attr.font->width - 1, attr.origin.y + attr.font->height - 1);
   ili9341_spi_tft_select(lcd);
 
   ili9341_enter_data_mode(lcd);
@@ -411,9 +411,9 @@ void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  
 {
   ili9341_text_attr_t _attr = attr;
 
-  int16_t curr_x = _attr.origin_x;
-  int16_t curr_y = _attr.origin_y;
-  int16_t start_x = _attr.origin_x;
+  int16_t curr_x = _attr.origin.x;
+  int16_t curr_y = _attr.origin.y;
+  int16_t start_x = _attr.origin.x;
 
   while ('\0' != *str) {
     if('\r' == *str)
@@ -431,8 +431,8 @@ void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  
           (curr_y > lcd->screen_size.height) )
         { break; }
 
-      _attr.origin_x = curr_x;
-      _attr.origin_y = curr_y;
+      _attr.origin.x = curr_x;
+      _attr.origin.y = curr_y;
 
       ili9341_draw_char(lcd, _attr, *str);
 

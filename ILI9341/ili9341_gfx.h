@@ -59,13 +59,17 @@ typedef enum
 }
 ili9341_word_wrap_t;
 
+typedef struct {
+    uint16_t x;
+    uint16_t y;
+} ili9341_pos_t;
+
 typedef struct
 {
   ili9341_font_t const *font;
   ili9341_color_t fg_color;
   ili9341_color_t bg_color;
-  uint16_t origin_x;
-  uint16_t origin_y;
+  ili9341_pos_t origin;
 }
 ili9341_text_attr_t;
 
