@@ -407,7 +407,7 @@ void ili9341_draw_char(ili9341_t *lcd, const ili9341_text_attr_t attr, char ch)
   ili9341_spi_tft_release(lcd);
 }
 
-void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  char str[])
+ili9341_pos_t ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const char str[])
 {
   ili9341_text_attr_t _attr = attr;
 
@@ -440,6 +440,7 @@ void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  
     }
     ++str;
   }
+  return (ili9341_pos_t){curr_x, curr_y};
 }
 
 // ------------------------------------------------------- private functions --
