@@ -70,6 +70,10 @@ typedef struct
   ili9341_color_t fg_color;
   ili9341_color_t bg_color;
   ili9341_pos_t origin;
+
+  #define ILI9341_H_WRAP_OFF UINT16_MAX
+  // horizontal wrapping: off - ILI9341_H_WRAP_OFF, on - newline x position
+  uint16_t h_wrap;
 }
 ili9341_text_attr_t;
 

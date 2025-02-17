@@ -418,17 +418,37 @@ ili9341_pos_t ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr
   while ('\0' != *str) {
     if('\r' == *str)
     {
-      curr_x = start_x;
+      if(attr.h_wrap == ILI9341_H_WRAP_OFF)
+      {
+        curr_x = start_x;
+      }
+      else
+      {
+          curr_x = attr.h_wrap;
+      }
     }
     else if('\n' == *str)
     {
-      curr_y += _attr.font->height;
-      curr_x = start_x;
+      curr_y += _attr.font->height + _attr.font->v_spacing;
+      if(attr.h_wrap == ILI9341_H_WRAP_OFF)
+      {
+        curr_x = start_x;
+      }
+      else
+      {
+        curr_x = attr.h_wrap;
+      }
     }
     else
     {
-      if ( (curr_x > lcd->screen_size.width) ||
-          (curr_y > lcd->screen_size.height) )
+      if(curr_y > lcd->screen_size.height)
+        { break; }
+      else if(attr.h_wrap != ILI9341_H_WRAP_OFF && curr_x + _attr.font->width > lcd->screen_size.width)
+      {
+        curr_x = attr.h_wrap;
+        curr_y += _attr.font->height + _attr.font->v_spacing;
+      }
+      else if ((curr_x > lcd->screen_size.width))
         { break; }
 
       _attr.origin.x = curr_x;
