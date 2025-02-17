@@ -436,7 +436,7 @@ void ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const  
 
       ili9341_draw_char(lcd, _attr, *str);
 
-      curr_x += _attr.font->width + _attr.font->spacing;
+      curr_x += _attr.font->width + _attr.font->h_spacing;
     }
     ++str;
   }

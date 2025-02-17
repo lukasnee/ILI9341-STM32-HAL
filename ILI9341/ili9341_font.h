@@ -29,7 +29,8 @@ extern "C" {
 typedef struct {
     const uint8_t width;
     const uint8_t height;
-    const uint8_t spacing;
+    const uint8_t h_spacing;
+    const uint8_t v_spacing;
     const uint16_t glyph[];
 } ili9341_font_t;
 
