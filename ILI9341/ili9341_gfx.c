@@ -94,6 +94,9 @@ ili9341_color_t ili9341_color_wheel(uint8_t *pos)
 void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
     uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 {
+  if ((NULL == lcd))
+    { return; }
+
   ili9341_spi_tft_select(lcd);
 
   // column address set
@@ -123,7 +126,7 @@ void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
 void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y)
 {
-  if (ibNOT(ili9341_clip_rect(lcd, &x, &y, NULL, NULL)))
+  if ((NULL == lcd) || ibNOT(ili9341_clip_rect(lcd, &x, &y, NULL, NULL)))
     { return; }
 
   uint16_t color_le = __LEu16(&color);
@@ -142,6 +145,9 @@ void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
 void ili9341_draw_line(ili9341_t *lcd, ili9341_color_t color,
     int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
+  if ((NULL == lcd))
+    { return; }
+
   int16_t dx = x1 - x0;
   int16_t dy = y1 - y0;
 
@@ -212,6 +218,9 @@ void ili9341_draw_line(ili9341_t *lcd, ili9341_color_t color,
 void ili9341_draw_rect(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y, uint16_t w, uint16_t h)
 {
+  if ((NULL == lcd))
+    { return; }
+
   ili9341_draw_line(lcd, color,     x,     y,   x+w,     y );
   ili9341_draw_line(lcd, color,     x, y+h-1,   x+w, y+h-1 );
   ili9341_draw_line(lcd, color,     x,     y,     x,   y+h );
@@ -221,6 +230,9 @@ void ili9341_draw_rect(ili9341_t *lcd, ili9341_color_t color,
 void ili9341_fill_rect(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y, uint16_t w, uint16_t h)
 {
+  if ((NULL == lcd))
+    { return; }
+
   // verify we have something within screen dimensions to be drawn
   if (ibNOT(ili9341_clip_rect(lcd, &x, &y, &w, &h)))
     { return; }
@@ -260,6 +272,9 @@ void ili9341_fill_rect(ili9341_t *lcd, ili9341_color_t color,
 void ili9341_draw_circle(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y, int16_t r)
 {
+  if ((NULL == lcd))
+    { return; }
+
   int16_t f = 1 - r;
   int16_t fx = 1;
   int16_t fy = -2 * r;
@@ -297,12 +312,18 @@ void ili9341_draw_circle(ili9341_t *lcd, ili9341_color_t color,
 void ili9341_fill_circle(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y, int16_t r)
 {
+  if ((NULL == lcd))
+    { return; }
+
   ili9341_draw_line(lcd, color, x, y - r, x, (y - r) + (2 * r) + 1);
   ili9341_fill_quarter_circle(lcd, color, x, y, r, 3, 0);
 }
 
 void ili9341_fill_screen(ili9341_t *lcd, ili9341_color_t color)
 {
+  if ((NULL == lcd))
+    { return; }
+
   ili9341_fill_rect(lcd, color,
       0, 0, lcd->screen_size.width, lcd->screen_size.height);
 }
@@ -354,6 +375,9 @@ void ili9341_draw_bitmap_1b(ili9341_t *lcd,
 
 void ili9341_draw_char(ili9341_t *lcd, const ili9341_text_attr_t attr, char ch)
 {
+  if ((NULL == lcd))
+    { return; }
+
   // verify we have something within screen dimensions to be drawn
   int16_t  _x = attr.origin.x;
   int16_t  _y = attr.origin.y;
@@ -409,6 +433,9 @@ void ili9341_draw_char(ili9341_t *lcd, const ili9341_text_attr_t attr, char ch)
 
 ili9341_pos_t ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr, const char str[])
 {
+  if ((NULL == lcd) || (NULL == str))
+    { return (ili9341_pos_t){attr.origin.x, attr.origin.y}; }
+
   ili9341_text_attr_t _attr = attr;
 
   int16_t curr_x = _attr.origin.x;
@@ -468,6 +495,9 @@ ili9341_pos_t ili9341_draw_string(ili9341_t *lcd, const ili9341_text_attr_t attr
 static ili9341_bool_t ili9341_clip_rect(ili9341_t *lcd,
     int16_t *x, int16_t *y, uint16_t *w, uint16_t *h)
 {
+  if ((NULL == lcd))
+    { return ibFalse; }
+
   // must have an origin to do anything
   if ((NULL == x) || (NULL == y))
     { return ibFalse; }
@@ -513,6 +543,9 @@ static ili9341_bool_t ili9341_clip_rect(ili9341_t *lcd,
 static void ili9341_fill_quarter_circle(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y, int16_t r, uint8_t corners, int16_t delta)
 {
+  if ((NULL == lcd))
+    { return; }
+
   int16_t f = 1 - r;
   int16_t fx = 1;
   int16_t fy = -2 * r;
