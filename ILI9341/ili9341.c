@@ -179,17 +179,26 @@ ili9341_t *ili9341_new(
 }
 
 void ili9341_enter_data_mode(ili9341_t *lcd) {
+  if (NULL == lcd)
+    { return; }
+
     HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin,
                       GPIO_PIN_SET);
 }
 
 void ili9341_enter_command_mode(ili9341_t *lcd) {
+  if (NULL == lcd)
+    { return; }
+
     HAL_GPIO_WritePin(lcd->data_command_port, lcd->data_command_pin,
                       GPIO_PIN_RESET);
 }
 
 void ili9341_touch_interrupt(ili9341_t *lcd)
 {
+  if (NULL == lcd)
+    { return; }
+
   uint16_t x_pos;
   uint16_t y_pos;
 
@@ -252,14 +261,20 @@ ili9341_touch_pressed_t ili9341_touch_pressed(ili9341_t *lcd)
 
 void ili9341_set_touch_pressed_begin(ili9341_t *lcd, ili9341_touch_callback_t callback)
 {
-  if ((NULL != lcd) && (NULL != callback)) {
+  if (NULL == lcd)
+    { return; }
+
+  if (NULL != callback) {
     lcd->touch_pressed_begin = callback;
   }
 }
 
 void ili9341_set_touch_pressed_end(ili9341_t *lcd, ili9341_touch_callback_t callback)
 {
-  if ((NULL != lcd) && (NULL != callback)) {
+  if (NULL == lcd)
+    { return; }
+
+  if (NULL != callback) {
     lcd->touch_pressed_end = callback;
   }
 }
@@ -267,9 +282,6 @@ void ili9341_set_touch_pressed_end(ili9341_t *lcd, ili9341_touch_callback_t call
 ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
     uint16_t *x_pos, uint16_t *y_pos)
 {
-  if (NULL == lcd)
-    { return itpNONE; }
-
   uint16_t req_samples;
   switch (lcd->touch_normalize) {
     default:
@@ -345,9 +357,6 @@ ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
 void ili9341_calibrate_scalar(ili9341_t *lcd,
     uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y)
 {
-  if (NULL == lcd)
-    { return; }
-
   lcd->touch_calibration = itcScalar;
   lcd->touch_scalar.min = (ili9341_two_dimension_t){ {min_x}, {min_y} };
   lcd->touch_scalar.max = (ili9341_two_dimension_t){ {max_x}, {max_y} };
@@ -429,12 +438,18 @@ void ili9341_calibrate_3point(ili9341_t *lcd,
 
 void ili9341_spi_tft_select(ili9341_t *lcd)
 {
+  if (NULL == lcd)
+    { return; }
+
   // clear bit indicates the TFT is -active- slave SPI device
   HAL_GPIO_WritePin(lcd->tft_select_port, lcd->tft_select_pin, __GPIO_PIN_CLR__);
 }
 
 void ili9341_spi_tft_release(ili9341_t *lcd)
 {
+  if (NULL == lcd)
+    { return; }
+
   // set bit indicates the TFT is -inactive- slave SPI device
   HAL_GPIO_WritePin(lcd->tft_select_port, lcd->tft_select_pin, __GPIO_PIN_SET__);
 }
