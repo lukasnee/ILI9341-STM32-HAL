@@ -104,12 +104,6 @@ extern ili9341_color_t const ILI9341_PINK;
 ili9341_color_rgb_t ili9341_rgb_wheel(uint8_t *pos);
 ili9341_color_t ili9341_color_wheel(uint8_t *pos);
 
-void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
-    uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
-
-void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
-    uint16_t color[]/* already byte-swapped (LE) */);
-
 void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y);
 

@@ -23,8 +23,14 @@
 
 #define __IS_SPI_SLAVE(s) (((s) > issNONE) && ((s) < issCOUNT))
 
+void ili9341_spi_slave_select(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave);
+
 #define __SLAVE_SELECT(d, s)  \
   if (__IS_SPI_SLAVE(s)) { ili9341_spi_slave_select((d), (s)); }
+
+void ili9341_spi_slave_release(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave);
 
 #define __SLAVE_RELEASE(d, s) \
   if (__IS_SPI_SLAVE(s)) { ili9341_spi_slave_release((d), (s)); }
@@ -55,6 +61,22 @@ ili9341_two_dimension_t ili9341_clip_touch_coordinate(ili9341_two_dimension_t co
     ili9341_two_dimension_t min, ili9341_two_dimension_t max);
 ili9341_two_dimension_t ili9341_project_touch_coordinate(ili9341_t *lcd,
     uint16_t x_pos, uint16_t y_pos);
+
+static void ili9341_calibrate_scalar(ili9341_t *lcd,
+    uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y);
+static ili9341_touch_pressed_t ili9341_touch_coordinate(ili9341_t *lcd,
+    uint16_t *x_pos, uint16_t *y_pos);
+static void ili9341_spi_touch_select(ili9341_t *lcd);
+static void ili9341_spi_touch_release(ili9341_t *lcd);
+static void ili9341_spi_write_command(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave, uint8_t command);
+static void ili9341_spi_write_data(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave, uint16_t data_sz, uint8_t data[]);
+static void ili9341_spi_write_data_read(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave,
+    uint16_t data_sz, uint8_t tx_data[], uint8_t rx_data[]);
+static void ili9341_spi_write_command_data(ili9341_t *lcd,
+    ili9341_spi_slave_t spi_slave, uint8_t command, uint16_t data_sz, uint8_t data[]);
 
 // ------------------------------------------------------- exported functions --
 
@@ -415,6 +437,38 @@ void ili9341_spi_tft_release(ili9341_t *lcd)
 {
   // set bit indicates the TFT is -inactive- slave SPI device
   HAL_GPIO_WritePin(lcd->tft_select_port, lcd->tft_select_pin, __GPIO_PIN_SET__);
+}
+
+void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
+    uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+{
+  if ((NULL == lcd))
+    { return; }
+
+  ili9341_spi_tft_select(lcd);
+
+  // column address set
+  ili9341_spi_write_command_data(lcd, issNONE,
+      0x2A, 4, (uint8_t[]){ (x0 >> 8) & 0xFF, x0 & 0xFF,
+                            (x1 >> 8) & 0xFF, x1 & 0xFF });
+
+  // row address set
+  ili9341_spi_write_command_data(lcd, issNONE,
+      0x2B, 4, (uint8_t[]){ (y0 >> 8) & 0xFF, y0 & 0xFF,
+                            (y1 >> 8) & 0xFF, y1 & 0xFF });
+
+  // write to RAM
+  ili9341_spi_write_command(lcd, issNONE, 0x2C);
+
+  ili9341_spi_tft_release(lcd);
+}
+
+void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
+    uint16_t color[]/* already byte-swapped (LE) */)
+{
+  if ((NULL == lcd) || (0 == size) || (NULL == color))
+    { return; }
+  lcd->spi_write_fn((uint8_t *)color, size);
 }
 
 void ili9341_spi_touch_select(ili9341_t *lcd)

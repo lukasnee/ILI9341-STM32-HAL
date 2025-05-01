@@ -91,38 +91,6 @@ ili9341_color_t ili9341_color_wheel(uint8_t *pos)
   return __ILI9341_COLOR565_RGB(rgb);
 }
 
-void ili9341_spi_tft_set_address_rect(ili9341_t *lcd,
-    uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
-{
-  if ((NULL == lcd))
-    { return; }
-
-  ili9341_spi_tft_select(lcd);
-
-  // column address set
-  ili9341_spi_write_command_data(lcd, issNONE,
-      0x2A, 4, (uint8_t[]){ (x0 >> 8) & 0xFF, x0 & 0xFF,
-                            (x1 >> 8) & 0xFF, x1 & 0xFF });
-
-  // row address set
-  ili9341_spi_write_command_data(lcd, issNONE,
-      0x2B, 4, (uint8_t[]){ (y0 >> 8) & 0xFF, y0 & 0xFF,
-                            (y1 >> 8) & 0xFF, y1 & 0xFF });
-
-  // write to RAM
-  ili9341_spi_write_command(lcd, issNONE, 0x2C);
-
-  ili9341_spi_tft_release(lcd);
-}
-
-void ili9341_transmit_color(ili9341_t *lcd, uint16_t size,
-    uint16_t color[]/* already byte-swapped (LE) */)
-{
-  if ((NULL == lcd) || (0 == size) || (NULL == color))
-    { return; }
-  lcd->spi_write_fn((uint8_t *)color, size);
-}
-
 void ili9341_draw_pixel(ili9341_t *lcd, ili9341_color_t color,
     int16_t x, int16_t y)
 {
