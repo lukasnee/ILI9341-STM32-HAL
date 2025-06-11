@@ -5,6 +5,8 @@ target_sources(
                             ILI9341/ili9341.c
 )
 
+target_compile_options(ILI9341-STM32-HAL PRIVATE -Wno-unused-function)
+
 target_include_directories(ILI9341-STM32-HAL PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(ILI9341-STM32-HAL PUBLIC STM32H7xx_HAL freertos-addons)
